@@ -53,13 +53,13 @@ class NeuralNet(object):
 			print()
 
 	def testwith(self, testval):
-		cell11 = out(self.layer1[0], [testval])
-		cell21 = out(self.layer2[0], [cell11])
-		cell22 = out(self.layer2[1], [cell11])
-		cell23 = out(self.layer2[2], [cell11])
-		cell24 = out(self.layer2[3], [cell11])
-		cell31 = out(self.layer3[0], [cell21, cell22, cell23, cell24])
-		if cell31 > 0.5:
+		cell11 = out(self.layers[0][0], [testval])
+		cell21 = out(self.layers[1][0], [cell11])
+		cell22 = out(self.layers[1][1], [cell11])
+		cell23 = out(self.layers[1][2], [cell11])
+		cell24 = out(self.layers[1][3], [cell11])
+		cell31 = out(self.layers[2][0], [cell21, cell22, cell23, cell24])
+		if cell31 >= 0.5:
 			return True
 		else:
 			return False
