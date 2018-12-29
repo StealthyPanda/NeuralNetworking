@@ -7,5 +7,5 @@ print()
 
 #print('It\'s output is: ')
 #print(out(config, values))
-if n.testwith(4): print('Old')
-else: print('Young')
+#print(n.testwith(int(input('-> '))))
+print(n.getscore())

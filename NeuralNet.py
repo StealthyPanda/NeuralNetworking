@@ -59,7 +59,14 @@ class NeuralNet(object):
 		cell23 = out(self.layers[1][2], [cell11])
 		cell24 = out(self.layers[1][3], [cell11])
 		cell31 = out(self.layers[2][0], [cell21, cell22, cell23, cell24])
-		if cell31 >= 0.5:
-			return True
-		else:
-			return False
+		return cell31
+
+	def getscore(self):
+		score = 0
+		for each in self.pairs:
+			guess = 'n'
+			if self.testwith(int(each[0])) > 0.5: guess = 'y'
+			if guess == each[1]:
+				score += 1
+				print(each)
+		return score
