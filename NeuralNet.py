@@ -5,6 +5,7 @@ def process(webipa, value):
 	bias = webipa[1]
 	return (value*weight) + bias
 
+#activation with sigmoid function
 def out(config, values):
 	finval = 0
 	for each in range(len(config)):
