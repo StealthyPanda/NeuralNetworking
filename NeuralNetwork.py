@@ -11,10 +11,37 @@ class NeuralNetwork(object):
 		print(self.name + ": ")
 		self.matrix.display()
 
-	def save(self):
 
-		with open(self.name+'.txt', 'wb') as file:
-			pass
+	"""
+	saves the NN matrix in a text file in the following format:
+	a cell is flanked by |; so |*le cell contents*|
+	each layer is on a different line. so:
+	layer1 -> cell1|cell2|cell3|cell4
+	layer2 -> cell1|cell2|cell3
+	layer3 -> cell1|cell2|cell3|cell4
+	layer4 -> cell1|cell2
+
+	inside each cell, weights and biases are written separated by commas. so:
+	|w1,w2,w3,w4,w5 ... wn, bias| (last element is the bias of the cell)
+	"""
+	def save(self):
+		listoflayers = []
+		for each in range(self.matrix.nlayers):
+			currentlayer = []
+			for i in range(len(self.matrix.layers[each])):
+				thestringedcell = []
+				for x in range(len(self.matrix.layers[each][i][0])):
+					thestringedcell.append(str(self.matrix.layers[each][i][0][x]))
+				thestringedcell.append(str(self.matrix.layers[each][i][1]))
+				#print(thestringedcell)
+				cellstring = ",".join(thestringedcell)
+				currentlayer.append(cellstring)
+			listoflayers.append("|".join(currentlayer))
+		finaloutput = "\n".join(listoflayers)
+		with open(self.name + '.txt', 'w') as file:
+			file.write(finaloutput)
+
+
 
 	def setval(self, layer, cell, value, weight = -1):
 		self.matrix.setval(layer, cell, value, weight)
