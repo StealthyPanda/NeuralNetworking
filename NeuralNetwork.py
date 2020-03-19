@@ -1,8 +1,15 @@
 from scipy.stats import logistic
+from random import seed
+from random import random
+from random import randint
+from random import choice
+import threading
+import copy
+ok = True
 
 
 class NeuralNetwork(object):
-	def __init__(self, name):
+	def __init__(self, name = ''):
 		print("New neural network created")
 		self.name = name
 
@@ -38,8 +45,27 @@ class NeuralNetwork(object):
 				currentlayer.append(cellstring)
 			listoflayers.append("|".join(currentlayer))
 		finaloutput = "\n".join(listoflayers)
-		with open(self.name + '.txt', 'w') as file:
+		with open(self.name.lower() + '.txt', 'w') as file:
 			file.write(finaloutput)
+
+	#extracts model from saved file
+	def extract(self, modelname):
+		finallayers = []
+		filename = modelname.lower() + '.txt'
+		with open(filename, 'r') as file:
+			rawtext = file.read()
+		finallayers = rawtext.split('\n')
+		for each in range(len(finallayers)):
+			finallayers[each] = finallayers[each].split('|')
+		for each in range(len(finallayers)):
+			for i in range(len(finallayers[each])):
+				celllist = finallayers[each][i].split(',')
+				for z in range(len(celllist)):
+					celllist[z] = float(celllist[z])
+				finallayers[each][i] = [celllist[0:-1], celllist[-1]]
+		self.matrix = FlexiMatrix(len(finallayers), len(finallayers[0][0][0]))
+		self.matrix.layers = finallayers
+
 
 
 
@@ -54,6 +80,7 @@ class NeuralNetwork(object):
 		self.matrix.setcellsineachlayer(ncells)
 		self.matrix.initiate()
 
+	#returns the outputlayer for a given input layer
 	def runcycle(self, inputs):
 		if len(inputs) != self.matrix.ninputlayer : return "Length of inputs dont match"
 		self.inputlayer = inputs
@@ -68,7 +95,7 @@ class NeuralNetwork(object):
 
 
 			self.bufferlayer[each] = logistic.cdf(bias + weightedsum)
-		print(self.bufferlayer)
+		#print(self.bufferlayer)
 		for eachlayer in range(1, self.matrix.nlayers):
 			newbuffer = [0 for i in range(len(self.matrix.layers[eachlayer]))]
 			for each in range(len(newbuffer)):
@@ -78,24 +105,147 @@ class NeuralNetwork(object):
 					weightedsum += self.bufferlayer[i] * self.matrix.getval(eachlayer, each, i)
 				newbuffer[each] = logistic.cdf(bias + weightedsum)
 			self.bufferlayer = newbuffer
-			print(self.bufferlayer)
+			#print(self.bufferlayer)
 		return self.bufferlayer	
+
+	#returns a list like [0, 0 , ... 1 ..., 0 ,0], where 1 is the
+	#cell in final(output layer) that si the brightest. this is for
+	#use istead of an out put like [0.843984, 0.0238238,... ,0.0832832]
+	#or whatever.
+	def modeloutput(self, inputs):
+		g = 0
+		gi = 0
+		o = self.runcycle(inputs)
+		for i in range(len(o)):
+			if o[i] > g: 
+				g = o[i]
+				gi = i
+		ol = [0 for x in o]
+		ol[gi] = 1
+		return ol
 
 
 """
-trains the neural network but rnadomly causing variations in the network
+trains the neural network but randomly causing variations in the network
 and reproducing the best performing one
 """
 class EvolutionaryTrainer(object):
-	def __init__(self):
-		pass
+	def __init__(self, model):
+		self.model = model
+		self.genno = 0
+		self.datadone = 0
 
-	def Train(self, cycles):
-		if cycles >= 4:
-			print("Too many cycles")
-			return
-		self.ncycles = 10**cycles
+	#returns a list of NN models with random mutations. rate is the no.
+	#of models produced per generation
+	#mutation is how much variation in each value is produced
+	def reproducemodel(self, model, rate, mutation):
+		gen = []
+		for x in range(rate):
+			buffermodel = copy.deepcopy(model)
+			for each in range(len(buffermodel.matrix.layers)):
+				seed()
+				for i in range(len(buffermodel.matrix.layers[each])):
+					for x in range(len(buffermodel.matrix.layers[each][i][0])):
+						buffermodel.matrix.layers[each][i][0][x] += (choice([-1, 1]) * mutation * random())
+					buffermodel.matrix.layers[each][i][1] += (choice([-1, 1]) * mutation * random())
+			gen.append(buffermodel)
+		return gen
 
+	def getcostfunction(self, model, dataset):
+		cost = 0
+		inputset = []
+		outputset = []
+		rawfile = []
+		with open(str(dataset) + '.txt', 'r') as file:
+			rawfile = file.read().split('\n')
+		rawfile.remove("")
+		for x in range(0, len(rawfile), 2):
+			inputset.append(rawfile[x])
+		for x in range(1, len(rawfile), 2):
+			outputset.append(rawfile[x])
+		outputset.append(rawfile[-1])
+		for x in range(len(inputset)):
+			inputset[x] = inputset[x].split(" ")
+		for x in range(len(outputset)):
+			outputset[x] = outputset[x].split(" ")
+		for each in range(len(inputset)):
+			for i in range(len(inputset[each])):
+				try:
+					inputset[each][i] = float(inputset[each][i])
+				except:
+					inputset[each].remove(inputset[each][i])
+		for each in range(len(outputset)):
+			for i in range(len(outputset[each])):
+				try:
+					outputset[each][i] = float(outputset[each][i])
+				except:
+					outputset[each].remove(outputset[each][i])
+					pass
+
+		for each in range(len(inputset)):
+			costsum = 0
+			modelout = model.runcycle(inputset[each])
+			self.datadone += 1
+			realout = outputset[each]
+			#print(len(modelout))
+			#print(len(realout))
+			for x in range(len(modelout)):
+				#print(modelout[x])
+				#print(realout[x])
+				costsum += (( modelout[x] - realout[x] ) ** 2)
+			cost += costsum
+		cost = (cost / len(inputset))
+		#self.datadone = 0
+		#print(len(rawfile))
+		return cost
+
+
+
+	def updater(self):
+		global ok
+		prevgen = 0
+		prevdata = 0
+		while ok:
+			if self.genno % 10 == 0 and self.genno != prevgen:
+				print("Generation no: " + str(self.genno))
+				prevgen = self.genno
+			if self.datadone % 10 == 0 and self.datadone != prevdata:
+				print("Datasets done: " + str(self.datadone))
+				prevdata = self.datadone
+
+
+
+
+
+
+
+
+
+	#trains the given model for given rate and mutations, defined 
+	#above. this is repeated for cycles no. of times (generations)
+	def train(self, dataset, cycles, rate = 10, mutation = 1):
+		global ok
+		self.genno = 0
+		self.datadone = 0
+		#updater stuff
+		t = threading.Thread(target = self.updater, args = ())
+		t.start()
+		#ok done
+		bestmodel = copy.deepcopy(self.model)
+		bestcost = self.getcostfunction(bestmodel, dataset)
+		bestcost1 = copy.deepcopy(bestcost)
+		for omega in range(cycles):
+			self.genno += 1
+			buffergen = self.reproducemodel(bestmodel, rate, mutation)
+			for each in range(len(buffergen)):
+				newcost = self.getcostfunction(buffergen[each], dataset)
+				if newcost < bestcost:
+					bestmodel = copy.deepcopy(buffergen[each])
+					bestcost = newcost
+		print("Cost at the start: " + str(bestcost1))
+		print("Cost at end of training: " + str(bestcost))
+		ok = False
+		return bestmodel
 
 
 class FlexiMatrix(object):
