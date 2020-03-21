@@ -4,15 +4,17 @@ from random import randint
 
 
 noofsets = 500
-filename = 1
+filename = 5
 ninputlayer = 2
+inputrange = 6
 
 
 
 def conditionaloutput(inputset):
 	outputset = []
-	x = (((inputset[0] - 1.5)**2) + ((inputset[1] - 2)**2))
-	if x <= 1: outputset = [1, 0]
+
+	
+	if (inputset[0] <= (inputset[1] ** 2)) and (inputset[1] < (inputset[0] ** 2)): outputset = [1, 0]
 	else: outputset = [0, 1]
 
 	return outputset
@@ -28,7 +30,7 @@ with open(str(filename) + '.txt', 'a') as file:
 		inputset = []
 		outputset = []
 		for x in range(ninputlayer):
-			i = random() * 4
+			i = random() * inputrange
 			inputset.append(i)
 		#print(inputset)
 		outputset = conditionaloutput(inputset)

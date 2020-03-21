@@ -116,12 +116,14 @@ class NeuralNetwork(object):
 		g = 0
 		gi = 0
 		o = self.runcycle(inputs)
+		#print(o)
 		for i in range(len(o)):
 			if o[i] > g: 
 				g = o[i]
 				gi = i
 		ol = [0 for x in o]
 		ol[gi] = 1
+		#print(ol)
 		return ol
 
 
@@ -134,6 +136,54 @@ class EvolutionaryTrainer(object):
 		self.model = model
 		self.genno = 0
 		self.datadone = 0
+
+	#calcultates accuracy of the model in percentage of data
+	#it gets right
+	def calculateaccuracy(self, testdata):
+		inputset = []
+		outputset = []
+		rawfile = []
+		rights = []
+		accuracy = 0
+		wrongs = []
+		with open(str(testdata) + '.txt', 'r') as file:
+			rawfile = file.read().split('\n')
+		rawfile.remove("")
+		for x in range(0, len(rawfile), 2):
+			inputset.append(rawfile[x])
+		for x in range(1, len(rawfile), 2):
+			outputset.append(rawfile[x])
+		outputset.append(rawfile[-1])
+		for x in range(len(inputset)):
+			inputset[x] = inputset[x].split(" ")
+		for x in range(len(outputset)):
+			outputset[x] = outputset[x].split(" ")
+		for each in range(len(inputset)):
+			for i in range(len(inputset[each])):
+				try:
+					inputset[each][i] = float(inputset[each][i])
+				except:
+					inputset[each].remove(inputset[each][i])
+		for each in range(len(outputset)):
+			for i in range(len(outputset[each])):
+				try:
+					outputset[each][i] = float(outputset[each][i])
+				except:
+					outputset[each].remove(outputset[each][i])
+					pass
+		for each in range(len(inputset)):
+			#print(inputset)
+			prediction = self.model.modeloutput(inputset[each])
+			if prediction == outputset[each]:
+				rights.append(inputset[each])
+			else:
+				wrongs.append(inputset[each])
+		accuracy = (len(rights)/len(inputset)) * 100
+		#print(rights)
+		return [accuracy, rights, wrongs]
+
+
+
 
 	#returns a list of NN models with random mutations. rate is the no.
 	#of models produced per generation
@@ -245,6 +295,7 @@ class EvolutionaryTrainer(object):
 		print("Cost at the start: " + str(bestcost1))
 		print("Cost at end of training: " + str(bestcost))
 		ok = False
+		self.model = copy.deepcopy(bestmodel)
 		return bestmodel
 
 
