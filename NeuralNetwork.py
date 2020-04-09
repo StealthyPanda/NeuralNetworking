@@ -3,7 +3,9 @@ from random import seed
 from random import random
 from random import randint
 from random import choice
+from Matrices import Matrix
 import threading
+import math
 import copy
 ok = True
 
@@ -13,10 +15,18 @@ class NeuralNetwork(object):
 		print("New neural network created")
 		self.name = name
 
+	def __repr__(self):
+		return self.matrix.__repr__()
+
 	#displays the weights and biases of neural network
 	def display(self):
 		print(self.name + ": ")
 		self.matrix.display()
+
+
+	#returns the no of all the values in the NeuralNetwork
+	def getsize(self):
+		return self.matrix.getsize()
 
 
 	"""
@@ -108,7 +118,7 @@ class NeuralNetwork(object):
 			#print(self.bufferlayer)
 		return self.bufferlayer	
 
-	#returns a list like [0, 0 , ... 1 ..., 0 ,0], where 1 is the
+	#returns a list like [0, 0, ... 1 ..., 0 ,0], where 1 is the
 	#cell in final(output layer) that si the brightest. this is for
 	#use istead of an out put like [0.843984, 0.0238238,... ,0.0832832]
 	#or whatever.
@@ -125,6 +135,10 @@ class NeuralNetwork(object):
 		ol[gi] = 1
 		#print(ol)
 		return ol
+
+
+
+
 
 
 """
@@ -264,16 +278,9 @@ class EvolutionaryTrainer(object):
 				prevdata = self.datadone
 
 
-
-
-
-
-
-
-
 	#trains the given model for given rate and mutations, defined 
 	#above. this is repeated for cycles no. of times (generations)
-	def train(self, dataset, cycles, rate = 10, mutation = 1):
+	def train(self, dataset, cycles = 10, rate = 10, mutation = 1):
 		global ok
 		self.genno = 0
 		self.datadone = 0
@@ -306,6 +313,31 @@ class FlexiMatrix(object):
 		self.nlayers = nlayers
 		self.ninputlayer = ninputlayer
 		self.layers = [[] for i in range(self.nlayers)]
+
+
+	def __repr__(self):
+		retter = ""
+		retter += ("\n")
+		for each in range(len(self.layers)):
+			retter += ("layer " + str(each + 1) + "" + "-> " + str(self.layers[each]) + "\n")
+		return retter
+
+
+	#converts diagonal Matrix to FlexiMatrix(c)
+	#note: must be a diagonal matrix
+	def parse(self, matrixtoparse):
+		counter = 0
+		for each in range(len(self.layers)):
+			for i in range(len(self.layers[each])):
+				for x in range(len(self.layers[each][i][0])):
+					#print(matrixtoparse.rs[counter])
+					self.setval(each, i, matrixtoparse.rows[counter][counter], x)
+					counter += 1
+				self.setval(each, i, matrixtoparse.rows[counter][counter])
+				counter += 1
+
+
+
 	"""prints out the matrix in the folllowing format:
 		->*el layer 1's cells*
 		->*el layer 2's cells*
@@ -318,12 +350,12 @@ class FlexiMatrix(object):
 		#print("\n\n")
 
 	#cells are of the format [[w1, w2, ... wn], bias]
-	#inital value of all weights is 1 and all biases is 0
+	#inital value of all weights is 1 and all biases are also 1
 	def initiate(self):
 		for each in range(self.nlayers):
 			for i in range(len(self.layers[each])):
-				if each == 0: self.layers[each][i] = [[1 for i in range(self.ninputlayer)], 0]
-				else: self.layers[each][i] = [[1 for i in range(len(self.layers[each - 1]))], 0]
+				if each == 0: self.layers[each][i] = [[1 for i in range(self.ninputlayer)], 1]
+				else: self.layers[each][i] = [[1 for i in range(len(self.layers[each - 1]))], 1]
 
 	#after setting no. of layerss, set no. of cells in each layer (which may or may not be same) 
 	def setcellsineachlayer(self, ncells):
@@ -341,6 +373,101 @@ class FlexiMatrix(object):
 					self.layers[each] = [[] for i in range(ncells[each])]
 			return
 
+
+	#returns no. of all the values present in the FlexiMatrix(c)
+	def getsize(self):
+		size = 0
+		for each in range(len(self.layers)):
+			for i in range(len(self.layers[each])):
+				for x in range(len(self.layers[each][i][0])):
+					size += 1
+				size += 1
+		return size
+
+
+	#returns the FlexiMatrix(c) in a simple 2d matrix of the form:
+	"""the matrix is a square matrix with all non initialised values as 1. hopefully it works
+	[[w1, w2, ..., b1, w1, w2, .... b2 ... bn],
+	 [w1, w2, ..., b1, w1, w2, .... b2 ... bn],
+	 .
+	 .
+	 .
+	 [w1, w2, ..., b1, w1, w2, .... b2 ... bn],
+	 [1, 1, 1, ..., 1]
+	]
+	this one simply pushes the fleximatrix values into simple matrix,
+	then fills rest of the values with 1
+	"""
+	def get2dmatrixtypeone(self, appendingval = 1):
+		size = int(math.ceil((self.getsize())**0.5))
+		finalreturninglayers = Matrix(size, size)
+		for each in range(len(self.layers)):
+			for i in range(len(self.layers[each])):
+				for x in range(len(self.layers[each][i][0])):
+					finalreturninglayers.push(self.layers[each][i][0][x])
+				finalreturninglayers.push(self.layers[each][i][1])
+		while True:
+			try:
+				finalreturninglayers.push(appendingval)
+			except:
+				break
+		return finalreturninglayers
+
+
+
+
+	#returns the FlexiMatrix(c) in a simple 2d matrix of the form:
+	"""the matrix is a square matrix with all non initialised values as 1. hopefully it works
+	[[w1, w2, ..., b1, w1, w2, .... b2 ... bn, 1, 1, ... 1],
+	 [w1, w2, ..., b1, w1, w2, .... b2 ... bn, 1, 1, ... 1],
+	 .
+	 .
+	 .
+	 [w1, w2, ..., b1, w1, w2, .... b2 ... bn, 1, 1, ... 1]
+	]
+	this one simply makes each layer of length size by adding 1s at the end
+	"""
+	def get2dmatrixtypetwo(self, appendingval = 1):
+		size = 0
+		buffmat = []
+		for each in range(len(self.layers)):
+			bufflayer = []
+			for i in range(len(self.layers[each])):
+				for x in range(len(self.layers[each][i][0])):
+					bufflayer.append(self.layers[each][i][0][x])
+				bufflayer.append(self.layers[each][i][1])
+			if len(bufflayer) > size:
+				size = len(bufflayer)
+			buffmat.append(bufflayer)
+		finalreturninglayers = Matrix(size, size, appendingval)
+		#print(finalreturninglayers)
+		for each in range(len(buffmat)):
+			for i in range(len(buffmat[each])):
+				finalreturninglayers.Set(each+1, i+1, buffmat[each][i])
+
+		return finalreturninglayers
+
+
+	"""returns a 2d matrix where the diagonal is all the values of the FlexiMatrix(c)
+	also this is probably gonna be huge. bruh i dont think a single model can be this big"""
+
+	def get2dmatrixtypethree(self):
+		size = self.getsize()
+		#print(size)
+		finalreturninglayers = Matrix(size, size)
+		counter = 1
+		for each in range(len(self.layers)):
+			for i in range(len(self.layers[each])):
+				for x in range(len(self.layers[each][i][0])):
+					finalreturninglayers.Set(counter, counter, self.layers[each][i][0][x])
+					counter += 1
+				finalreturninglayers.Set(counter, counter, self.layers[each][i][1])
+				counter += 1
+
+		return finalreturninglayers
+
+
+
 	"""gets specific val from layer no. layer, cell no. cell
 	and if weight = -1(by default) returns the bias. if any other integer
 	is given, that weight is returned
@@ -355,3 +482,100 @@ class FlexiMatrix(object):
 
 		if weight == -1: self.layers[layer][cell][1] = value
 		else: self.layers[layer][cell][0][weight] = value
+
+	def Multiply(self, value):
+		for each in range(len(self.layers)):
+			for i in range(len(self.layers[each])):
+				for x in range(len(self.layers[each][i])):
+					self.layers[each][i][1] *= value
+					for z in range(len(self.layers[each][i][0])):
+						self.layers[each][i][0][z] *= value
+
+	def Add(mat1, mat2):
+		summat = copy.deepcopy(mat1)
+		for each in range(len(summat.layers)):
+			for i in range(len(summat.layers[each])):
+				for x in range(len(summat.layers[each][i])):
+					summat.layers[each][i][1] = mat1.layers[each][i][1] + mat2.layers[each][i][1]
+					for z in range(len(summat.layers[each][i][0])):
+						summat.layers[each][i][0][z] = mat1.layers[each][i][0][z] + mat2.layers[each][i][0][z]
+		return summat
+
+	#returns a FlexiMatrix(c) whose each value is inverse of each corresponding value of this matrix
+	def getinverse(self):
+		inverse = copy.deepcopy(self)
+		for each in range(len(inverse.layers)):
+			for i in range(len(inverse.layers[each])):
+				for x in range(len(inverse.layers[each][i])):
+					inverse.layers[each][i][1] = (1 / inverse.layers[each][i][1])
+					for z in range(len(inverse.layers[each][i][0])):
+						inverse.layers[each][i][0][z] = (1 / inverse.layers[each][i][0][z])
+		return inverse
+	#returns magnitude of entire matrix
+	def getmagnitude(self):
+		mag = 0
+		for each in range(len(self.layers)):
+			for i in range(len(self.layers[each])):
+				for x in range(len(self.layers[each][i])):
+					mag += (self.layers[each][i][1] ** 2)
+					for z in range(len(self.layers[each][i][0])):
+						mag += (self.layers[each][i][0][z] ** 2)
+		return mag
+
+
+
+
+
+
+
+
+
+
+"""Trainer that uses gradient vector"""
+class Trainer(EvolutionaryTrainer):
+	
+	
+	def getgradientvector(self, model, dataset, n = 2):
+		cofxplusepsilondx = 0
+		cofx = 0
+		epsilon = 0
+		difference = 0
+		gradient = model.matrix.get2dmatrixtypethree()
+		unitfleximatrix = copy.deepcopy(model.matrix)
+		
+
+		epsilon = (10 ** (-n))
+
+		buffmodel = copy.deepcopy(model)
+		cofx = self.getcostfunction(buffmodel, dataset)
+		#print('reached till here')
+		unitfleximatrix.Multiply(epsilon)
+		buffmodel.matrix = FlexiMatrix.Add(buffmodel.matrix, unitfleximatrix)
+		cofxplusepsilondx = self.getcostfunction(buffmodel, dataset)
+		#print('and also here')
+
+		difference = cofxplusepsilondx - cofx
+
+		gradient = gradient.ScalarMultiply(difference)
+		gradient = gradient.ScalarMultiply(10**n)
+			#print('le end is nigh')
+
+		
+
+			
+		return gradient
+
+
+	def trainvectorially(self, dataset, cycles = 10):
+		buffmodel = copy.deepcopy(self.model)
+		precost = self.getcostfunction(buffmodel, dataset)
+		for i in range(cycles):
+			gradient = self.getgradientvector(buffmodel, dataset)
+			flexigradient = copy.deepcopy(buffmodel.matrix)
+			flexigradient.parse(gradient)
+			#flexigradient.Multiply(-1)
+			buffmodel.matrix = FlexiMatrix.Add(buffmodel.matrix, flexigradient)
+		postcost = self.getcostfunction(buffmodel, dataset)
+		print("Cost before training: ", precost)
+		print("Cost after training: ", postcost)
+		return buffmodel
