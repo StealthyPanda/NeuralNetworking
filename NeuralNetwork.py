@@ -34,9 +34,10 @@ def Log(val):
 
 
 class NeuralNetwork(object):
-	def __init__(self, name = ''):
+	def __init__(self, name = '', function = ''):
 		print("New neural network created")
 		self.name = name
+		self.function = function
 
 	def __repr__(self):
 		try:
@@ -57,7 +58,10 @@ class NeuralNetwork(object):
 
 	#same as save but in .txt format; not recommended fam
 	def savetxt(self):
-		listoflayers = []
+		firstline = '<' + self.name + '>'
+		if self.function: firstline +='<' + self.function + '>'
+		#firstline += '\n'
+		listoflayers = [firstline]
 		for each in range(self.matrix.nlayers):
 			currentlayer = []
 			for i in range(len(self.matrix.layers[each])):
@@ -87,7 +91,10 @@ class NeuralNetwork(object):
 	"""
 	#saves the neural network in a "proprietary" .nn extension file
 	def save(self):
-		listoflayers = []
+		firstline = '<' + self.name + '>'
+		if self.function: firstline +='<' + self.function + '>'
+		#firstline += '\n'
+		listoflayers = [firstline]
 		for each in range(self.matrix.nlayers):
 			currentlayer = []
 			for i in range(len(self.matrix.layers[each])):
@@ -111,9 +118,9 @@ class NeuralNetwork(object):
 		with open(filename, 'r') as file:
 			rawtext = file.read()
 		finallayers = rawtext.split('\n')
-		for each in range(len(finallayers)):
+		for each in range(1, len(finallayers)):
 			finallayers[each] = finallayers[each].split('|')
-		for each in range(len(finallayers)):
+		for each in range(1, len(finallayers)):
 			for i in range(len(finallayers[each])):
 				celllist = finallayers[each][i].split(',')
 				for z in range(len(celllist)):
