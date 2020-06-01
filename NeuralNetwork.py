@@ -1,4 +1,5 @@
 from scipy.stats import logistic
+from datetime import datetime
 from random import seed
 from random import random
 from random import randint
@@ -10,13 +11,39 @@ import copy
 ok = True
 
 
+
+fileerrormsg = "\nERROR -> Unsupported file type or no file with given name found!\n         Neural Network must be of extension .nn or .txt\n"
+uninitmodelerrormsg = "\nERROR -> Model has not been initialised yet!\n"
+ninputerrormsg = "Length of inputs dont match"
+
+
+
+
+
+
+if __name__ == '__main__':
+	print("This file is just full of classes. Use another file to run them.")
+
+#kinda a gimmick really wont use it again 0/10
+def Log(val):
+	stringval = datetime.now().strftime('%Y-%m-%d %H:%M:%S') + str(val)
+	with open('Log.txt', 'a') as file:
+		file.write('\n')
+		file.write(stringval)
+		file.write('\n')
+
+
 class NeuralNetwork(object):
 	def __init__(self, name = ''):
 		print("New neural network created")
 		self.name = name
 
 	def __repr__(self):
-		return self.matrix.__repr__()
+		try:
+			return self.matrix.__repr__()
+		except:
+			print(uninitmodelerrormsg)
+			Log(uninitmodelerrormsg)
 
 	#displays the weights and biases of neural network
 	def display(self):
@@ -28,20 +55,8 @@ class NeuralNetwork(object):
 	def getsize(self):
 		return self.matrix.getsize()
 
-
-	"""
-	saves the NN matrix in a text file in the following format:
-	a cell is flanked by |; so |*le cell contents*|
-	each layer is on a different line. so:
-	layer1 -> cell1|cell2|cell3|cell4
-	layer2 -> cell1|cell2|cell3
-	layer3 -> cell1|cell2|cell3|cell4
-	layer4 -> cell1|cell2
-
-	inside each cell, weights and biases are written separated by commas. so:
-	|w1,w2,w3,w4,w5 ... wn, bias| (last element is the bias of the cell)
-	"""
-	def save(self):
+	#same as save but in .txt format; not recommended fam
+	def savetxt(self):
 		listoflayers = []
 		for each in range(self.matrix.nlayers):
 			currentlayer = []
@@ -58,8 +73,39 @@ class NeuralNetwork(object):
 		with open(self.name.lower() + '.txt', 'w') as file:
 			file.write(finaloutput)
 
+	"""
+	saves the NN matrix in a text file in the following format:
+	a cell is flanked by |; so |*le cell contents*|
+	each layer is on a different line. so:
+	layer1 -> cell1|cell2|cell3|cell4
+	layer2 -> cell1|cell2|cell3
+	layer3 -> cell1|cell2|cell3|cell4
+	layer4 -> cell1|cell2
+
+	inside each cell, weights and biases are written separated by commas. so:
+	|w1,w2,w3,w4,w5 ... wn, bias| (last element is the bias of the cell)
+	"""
+	#saves the neural network in a "proprietary" .nn extension file
+	def save(self):
+		listoflayers = []
+		for each in range(self.matrix.nlayers):
+			currentlayer = []
+			for i in range(len(self.matrix.layers[each])):
+				thestringedcell = []
+				for x in range(len(self.matrix.layers[each][i][0])):
+					thestringedcell.append(str(self.matrix.layers[each][i][0][x]))
+				thestringedcell.append(str(self.matrix.layers[each][i][1]))
+				#print(thestringedcell)
+				cellstring = ",".join(thestringedcell)
+				currentlayer.append(cellstring)
+			listoflayers.append("|".join(currentlayer))
+		finaloutput = "\n".join(listoflayers)
+		byteout = finaloutput.encode("utf-8")
+		with open(self.name.lower() + '.nn', 'wb') as file:
+			file.write(byteout)
+
 	#extracts model from saved file
-	def extract(self, modelname):
+	def extracttxt(self, modelname):
 		finallayers = []
 		filename = modelname.lower() + '.txt'
 		with open(filename, 'r') as file:
@@ -76,6 +122,38 @@ class NeuralNetwork(object):
 		self.matrix = FlexiMatrix(len(finallayers), len(finallayers[0][0][0]))
 		self.matrix.layers = finallayers
 
+	#extracts model from savebin-ed "proprietary" file
+	def extractbin(self, modelname):
+		finallayers = []
+		filename = modelname.lower() + '.nn'
+		with open(filename, 'rb') as file:
+			rawtext = file.read().decode()
+		finallayers = rawtext.split('\n')
+		for each in range(len(finallayers)):
+			finallayers[each] = finallayers[each].split('|')
+		for each in range(len(finallayers)):
+			for i in range(len(finallayers[each])):
+				celllist = finallayers[each][i].split(',')
+				for z in range(len(celllist)):
+					celllist[z] = float(celllist[z])
+				finallayers[each][i] = [celllist[0:-1], celllist[-1]]
+		self.matrix = FlexiMatrix(len(finallayers), len(finallayers[0][0][0]))
+		self.matrix.layers = finallayers
+
+	#general function for extracting any file type
+	def extract(self, modelname):
+		global fileerrormsg
+		try:
+			self.extractbin(modelname)
+			return
+		except:
+			try:
+				self.extracttxt(modelname)
+				return
+			except:
+				print(fileerrormsg)
+				Log(fileerrormsg)
+				return
 
 
 
@@ -92,7 +170,7 @@ class NeuralNetwork(object):
 
 	#returns the outputlayer for a given input layer
 	def runcycle(self, inputs):
-		if len(inputs) != self.matrix.ninputlayer : return "Length of inputs dont match"
+		if len(inputs) != self.matrix.ninputlayer : return ninputerrormsg
 		self.inputlayer = inputs
 		self.bufferlayer = [0 for i in range(len(self.matrix.layers[0]))]
 		for each in range(len(self.bufferlayer)):
@@ -119,13 +197,14 @@ class NeuralNetwork(object):
 		return self.bufferlayer	
 
 	#returns a list like [0, 0, ... 1 ..., 0 ,0], where 1 is the
-	#cell in final(output layer) that si the brightest. this is for
+	#cell in final(output layer) that is the brightest. this is for
 	#use istead of an out put like [0.843984, 0.0238238,... ,0.0832832]
 	#or whatever.
 	def modeloutput(self, inputs):
 		g = 0
 		gi = 0
 		o = self.runcycle(inputs)
+		if o == ninputerrormsg: return
 		#print(o)
 		for i in range(len(o)):
 			if o[i] > g: 
@@ -136,6 +215,13 @@ class NeuralNetwork(object):
 		#print(ol)
 		return ol
 
+	#resets the whole neural network
+	def reset(self):
+		for each in range(len(self.matrix.layers)):
+			for i in range(len(self.matrix.layers[each])):
+				self.matrix.layers[each][i][1] = 1
+				for x in range(len(self.matrix.layers[each][i][0])):
+					self.matrix.layers[each][i][0][x] = 1
 
 
 
@@ -256,7 +342,13 @@ class EvolutionaryTrainer(object):
 			for x in range(len(modelout)):
 				#print(modelout[x])
 				#print(realout[x])
-				costsum += (( modelout[x] - realout[x] ) ** 2)
+				try:
+					costsum += (( modelout[x] - realout[x] ) ** 2)
+				except:
+					#print("something wrong here:")
+					#print(type(modelout[x]), modelout[x])
+					#print(type(realout[x]), realout[x])
+					pass
 			cost += costsum
 		cost = (cost / len(inputset))
 		#self.datadone = 0
@@ -486,22 +578,21 @@ class FlexiMatrix(object):
 	def Multiply(self, value):
 		for each in range(len(self.layers)):
 			for i in range(len(self.layers[each])):
-				for x in range(len(self.layers[each][i])):
-					self.layers[each][i][1] *= value
-					for z in range(len(self.layers[each][i][0])):
-						self.layers[each][i][0][z] *= value
+				self.layers[each][i][1] *= value
+				for x in range(len(self.layers[each][i][0])):
+					self.layers[each][i][0][x] *= value
 
 	def Add(mat1, mat2):
 		summat = copy.deepcopy(mat1)
 		for each in range(len(summat.layers)):
 			for i in range(len(summat.layers[each])):
-				for x in range(len(summat.layers[each][i])):
-					summat.layers[each][i][1] = mat1.layers[each][i][1] + mat2.layers[each][i][1]
-					for z in range(len(summat.layers[each][i][0])):
-						summat.layers[each][i][0][z] = mat1.layers[each][i][0][z] + mat2.layers[each][i][0][z]
+				summat.layers[each][i][1] = mat1.layers[each][i][1] + mat2.layers[each][i][1]
+				for z in range(len(summat.layers[each][i][0])):
+					summat.layers[each][i][0][z] = mat1.layers[each][i][0][z] + mat2.layers[each][i][0][z]
 		return summat
 
 	#returns a FlexiMatrix(c) whose each value is inverse of each corresponding value of this matrix
+	#@deprecated
 	def getinverse(self):
 		inverse = copy.deepcopy(self)
 		for each in range(len(inverse.layers)):
@@ -567,15 +658,29 @@ class Trainer(EvolutionaryTrainer):
 
 
 	def trainvectorially(self, dataset, cycles = 10):
+
+		global ok
+		self.genno = 0
+		self.datadone = 0
+		#updater stuff
+		t = threading.Thread(target = self.updater, args = ())
+		t.start()
+
+
+
 		buffmodel = copy.deepcopy(self.model)
 		precost = self.getcostfunction(buffmodel, dataset)
 		for i in range(cycles):
 			gradient = self.getgradientvector(buffmodel, dataset)
 			flexigradient = copy.deepcopy(buffmodel.matrix)
 			flexigradient.parse(gradient)
-			#flexigradient.Multiply(-1)
+			#del gradient
+			#flexigradient.display()
+			flexigradient.Multiply(-1)
+			#flexigradient.display()
 			buffmodel.matrix = FlexiMatrix.Add(buffmodel.matrix, flexigradient)
 		postcost = self.getcostfunction(buffmodel, dataset)
 		print("Cost before training: ", precost)
 		print("Cost after training: ", postcost)
+		ok = False
 		return buffmodel

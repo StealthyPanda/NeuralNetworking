@@ -4,9 +4,9 @@ from random import randint
 
 
 noofsets = 500
-filename = 5
+filename = 6
 ninputlayer = 2
-inputrange = 6
+inputrange = 4
 
 
 

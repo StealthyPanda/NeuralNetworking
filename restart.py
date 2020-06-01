@@ -7,8 +7,8 @@ nn.display()
 
 trainer = Trainer(nn)
 pp = trainer.trainvectorially(1, 100)
-nn.display()
-pp.display()
+#nn.display()
+#pp.display()
 
 
 #trainer = EvolutionaryTrainer(nn)
