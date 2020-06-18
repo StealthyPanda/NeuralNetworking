@@ -17,7 +17,7 @@ uninitmodelerrormsg = "\nERROR -> Model has not been initialised yet!\n"
 ninputerrormsg = "Length of inputs dont match"
 
 
-
+delta = 10 ** -3
 
 
 
@@ -49,6 +49,7 @@ class NeuralNetwork(object):
 	#displays the weights and biases of neural network
 	def display(self):
 		print(self.name + ": ")
+		if self.function: print("Function: " + self.function)
 		self.matrix.display()
 
 
@@ -118,9 +119,13 @@ class NeuralNetwork(object):
 		with open(filename, 'r') as file:
 			rawtext = file.read()
 		finallayers = rawtext.split('\n')
-		for each in range(1, len(finallayers)):
+		name = finallayers[0].split('><')[0]
+		self.name = name[1:len(name)]
+		self.function = finallayers[0].split('><')[1][0:-1]
+		finallayers = finallayers[1:len(finallayers)]
+		for each in range(len(finallayers)):
 			finallayers[each] = finallayers[each].split('|')
-		for each in range(1, len(finallayers)):
+		for each in range(len(finallayers)):
 			for i in range(len(finallayers[each])):
 				celllist = finallayers[each][i].split(',')
 				for z in range(len(celllist)):
@@ -136,6 +141,10 @@ class NeuralNetwork(object):
 		with open(filename, 'rb') as file:
 			rawtext = file.read().decode()
 		finallayers = rawtext.split('\n')
+		name = finallayers[0].split('><')[0]
+		self.name = name[1:len(name)]
+		self.function = finallayers[0].split('><')[1][0:-1]
+		finallayers = finallayers[1:len(finallayers)]
 		for each in range(len(finallayers)):
 			finallayers[each] = finallayers[each].split('|')
 		for each in range(len(finallayers)):
@@ -379,7 +388,7 @@ class EvolutionaryTrainer(object):
 
 	#trains the given model for given rate and mutations, defined 
 	#above. this is repeated for cycles no. of times (generations)
-	def train(self, dataset, cycles = 10, rate = 10, mutation = 1):
+	def biotrain(self, dataset, cycles = 10, rate = 10, mutation = 1):
 		global ok
 		self.genno = 0
 		self.datadone = 0
@@ -662,6 +671,61 @@ class Trainer(EvolutionaryTrainer):
 
 			
 		return gradient
+
+	#the new one that gradients by cell
+	def getgradient(self, model, dataset):
+		global delta
+		index = 0
+		modeltotrain = copy.deepcopy(model)
+		grad = copy.deepcopy(model.matrix)
+		for each in range(len(modeltotrain.matrix.layers)):
+			for cell in range(len(modeltotrain.matrix.layers[each])):
+				for val in range(len(modeltotrain.matrix.layers[each][cell][0])):
+					buffmodel = copy.deepcopy(modeltotrain)
+					cofx = self.getcostfunction(buffmodel, dataset)
+					deltax = delta * buffmodel.matrix.layers[each][cell][0][val]
+					buffmodel.matrix.layers[each][cell][0][val] += deltax
+					cofxplusdeltax = self.getcostfunction(buffmodel, dataset)
+					del buffmodel
+					dobydo = (cofxplusdeltax - cofx)/deltax
+					grad.layers[each][cell][0][val] = dobydo
+					#print(index)
+					index += 1
+				buffmodel = copy.deepcopy(modeltotrain)
+				cofx = self.getcostfunction(buffmodel, dataset)
+				deltax = delta * buffmodel.matrix.layers[each][cell][1]
+				buffmodel.matrix.layers[each][cell][1] += deltax
+				cofxplusdeltax = self.getcostfunction(buffmodel, dataset)
+				del buffmodel
+				dobydo = (cofxplusdeltax - cofx)/deltax
+				grad.layers[each][cell][1] = dobydo
+				print(index)
+				index += 1
+		del modeltotrain
+		grad.Multiply(-1)
+		return grad
+
+	def trainbc(self, dataset, generations = 1):
+
+		global ok
+		self.genno = 0
+		self.datadone = 0
+		#updater stuff
+		t = threading.Thread(target = self.updater, args = ())
+		t.start()
+
+		buff = self.model
+		init = self.getcostfunction(buff, dataset)
+		for everysingletime in range(generations):
+			grad = self.getgradient(buff, dataset)
+			buff.matrix = FlexiMatrix.Add(buff.matrix, grad)
+			
+		post = self.getcostfunction(buff, dataset)
+
+		print("Cost before training: ", init)
+		print("Cost after training: ", post)
+		ok = False
+		return buff
 
 
 	def trainvectorially(self, dataset, cycles = 10):

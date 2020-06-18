@@ -1,5 +1,11 @@
 from NeuralNetwork import *
 
-friday = NeuralNetwork(name = "Friday", function = "To be real nice")
-friday.initialise(3, 2, [2, 3, 2])
-friday.savetxt()
+testmod = NeuralNetwork("testmod")
+testmod.initialise(4, 2, [2, 3, 3, 2])
+testmod.display()
+
+testtrainer = Trainer(testmod)
+
+testmod = testtrainer.trainbc(1)
+
+testmod.save()

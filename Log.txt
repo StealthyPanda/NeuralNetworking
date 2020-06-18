@@ -1,0 +1,20 @@
+
+2020-06-01 20:34:26
+ERROR -> Unsupported file type or no file with given name found!
+         Neural Network must be of extension .nn or .txt
+
+
+2020-06-01 20:39:52
+ERROR -> Unsupported file type or no file with given name found!
+         Neural Network must be of extension .nn or .txt
+
+
+2020-06-01 20:40:55
+ERROR -> Unsupported file type or no file with given name found!
+         Neural Network must be of extension .nn or .txt
+
+
+2020-06-01 20:42:19
+ERROR -> Unsupported file type or no file with given name found!
+         Neural Network must be of extension .nn or .txt
+
