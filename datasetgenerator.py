@@ -3,8 +3,8 @@ from random import random
 from random import randint
 
 
-noofsets = 500
-filename = 1
+noofsets = 10
+filename = 2
 ninputlayer = 2
 inputrange = 4
 

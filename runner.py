@@ -1,11 +1,9 @@
 from NeuralNetwork import *
 
-testmod = NeuralNetwork("testmod")
-testmod.initialise(4, 2, [2, 3, 3, 2])
-testmod.display()
+jarvisiona = NeuralNetwork("Jarvisiona")
 
-testtrainer = Trainer(testmod)
+jarvisiona.extract("jarvisiona")
 
-testmod = testtrainer.trainbc(1)
+obadiah = Trainer(jarvisiona)
 
-testmod.save()
+print(obadiah.getcostfunction(jarvisiona, 1))

@@ -20,6 +20,9 @@ ninputerrormsg = "Length of inputs dont match"
 delta = 10 ** -3
 
 
+threshold = 10**-4
+
+
 
 if __name__ == '__main__':
 	print("This file is just full of classes. Use another file to run them.")
@@ -121,7 +124,11 @@ class NeuralNetwork(object):
 		finallayers = rawtext.split('\n')
 		name = finallayers[0].split('><')[0]
 		self.name = name[1:len(name)]
-		self.function = finallayers[0].split('><')[1][0:-1]
+		try:
+			self.function = finallayers[0].split('><')[1][0:-1]
+		except:
+			self.function = ''
+			self.name = self.name[0:len(self.name)-1]
 		finallayers = finallayers[1:len(finallayers)]
 		for each in range(len(finallayers)):
 			finallayers[each] = finallayers[each].split('|')
@@ -143,7 +150,11 @@ class NeuralNetwork(object):
 		finallayers = rawtext.split('\n')
 		name = finallayers[0].split('><')[0]
 		self.name = name[1:len(name)]
-		self.function = finallayers[0].split('><')[1][0:-1]
+		try:
+			self.function = finallayers[0].split('><')[1][0:-1]
+		except:
+			self.function = ''
+			self.name = self.name[0:len(self.name)-1]
 		finallayers = finallayers[1:len(finallayers)]
 		for each in range(len(finallayers)):
 			finallayers[each] = finallayers[each].split('|')
@@ -242,7 +253,6 @@ class NeuralNetwork(object):
 
 
 
-
 """
 trains the neural network but randomly causing variations in the network
 and reproducing the best performing one
@@ -252,6 +262,9 @@ class EvolutionaryTrainer(object):
 		self.model = model
 		self.genno = 0
 		self.datadone = 0
+		self.bestmodel = NeuralNetwork()
+		self.bestcost = 1
+		self.dones = []
 
 	#calcultates accuracy of the model in percentage of data
 	#it gets right
@@ -726,6 +739,45 @@ class Trainer(EvolutionaryTrainer):
 		print("Cost after training: ", post)
 		ok = False
 		return buff
+
+
+	def tgtfunc(self, model, dataset):
+		global threshold
+		mn = model.name
+		bt = Trainer(model)
+		init = bt.getcostfunction(bm, dataset)
+		fin = init
+		while True:
+			bm = bt.biotrain(dataset)
+			fin = bt.getcostfunction(bm, dataset)
+			if (init-fin) < (threshold ** 0.5): break
+			init = fin
+		while True:
+			bm = bt.trainbc(dataset)
+			fin = bt.getcostfunction(bm, dataset)
+			if (init-fin) < threshold: break
+			init = fin
+		if fin < self.bestcost: 
+			self.bestmodel = bm
+			self.bestcost = fin
+		self.dones.remove(False)
+		if self.dones[0]:
+			self.bestmodel.name = mn + " -trained by the optimised training alg"
+			self.bestmodel.save()
+
+
+
+	def train(self, dataset, rate = 5, mutation = 10):
+		#print("THis")
+		self.dones = [False for i in range(rate)]
+		self.dones.append(True)
+		self.bestcost = 1
+		networks = self.reproducemodel(self.model, rate, mutation)
+		for eachnn in networks:
+			#print('heyhey')
+			threading.Thread(target = self.tgtfunc, args = (eachnn, dataset)).start()
+		pass
+
 
 
 	def trainvectorially(self, dataset, cycles = 10):
