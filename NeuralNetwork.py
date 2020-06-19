@@ -37,7 +37,8 @@ def Log(val):
 
 
 class NeuralNetwork(object):
-	def __init__(self, name = '', function = ''):
+	#log is basically whether you want it to print its creation or not
+	def __init__(self, name = '', function = '', log = True):
 		print("New neural network created")
 		self.name = name
 		self.function = function
@@ -262,7 +263,7 @@ class EvolutionaryTrainer(object):
 		self.model = model
 		self.genno = 0
 		self.datadone = 0
-		self.bestmodel = NeuralNetwork()
+		self.bestmodel = NeuralNetwork(log = False)
 		self.bestcost = 1
 		self.dones = []
 
@@ -766,7 +767,8 @@ class Trainer(EvolutionaryTrainer):
 			self.bestmodel.save()
 
 
-
+	#when using this specific train alg, no need to save the NN; it automatically gets saved. Thats 
+	#why it doesnt return anything
 	def train(self, dataset, rate = 5, mutation = 10):
 		#print("THis")
 		self.dones = [False for i in range(rate)]

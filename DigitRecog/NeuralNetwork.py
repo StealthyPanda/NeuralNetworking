@@ -1,4 +1,5 @@
 from scipy.stats import logistic
+from datetime import datetime
 from random import seed
 from random import random
 from random import randint
@@ -10,21 +11,49 @@ import copy
 ok = True
 
 
+
+fileerrormsg = "\nERROR -> Unsupported file type or no file with given name found!\n         Neural Network must be of extension .nn or .txt\n"
+uninitmodelerrormsg = "\nERROR -> Model has not been initialised yet!\n"
+ninputerrormsg = "Length of inputs dont match"
+
+
+delta = 10 ** -3
+
+
+threshold = 10**-4
+
+
+
 if __name__ == '__main__':
 	print("This file is just full of classes. Use another file to run them.")
 
+#kinda a gimmick really wont use it again 0/10
+def Log(val):
+	stringval = datetime.now().strftime('%Y-%m-%d %H:%M:%S') + str(val)
+	with open('Log.txt', 'a') as file:
+		file.write('\n')
+		file.write(stringval)
+		file.write('\n')
+
 
 class NeuralNetwork(object):
-	def __init__(self, name = ''):
-		print("New neural network created")
+	#log is basically whether you want it to print its creation or not
+	def __init__(self, name = '', function = '', log = True):
+		if log: print("New neural network created")
 		self.name = name
+		self.function = function
 
 	def __repr__(self):
-		return self.matrix.__repr__()
+		try:
+			return self.matrix.__repr__()
+		except:
+			print(uninitmodelerrormsg)
+			Log(uninitmodelerrormsg)
 
 	#displays the weights and biases of neural network
 	def display(self):
 		print(self.name + ": ")
+		if self.function: print("Function: " + self.function)
 		self.matrix.display()
 
 
@@ -32,21 +61,12 @@ class NeuralNetwork(object):
 	def getsize(self):
 		return self.matrix.getsize()
 
-
-	"""
-	saves the NN matrix in a text file in the following format:
-	a cell is flanked by |; so |*le cell contents*|
-	each layer is on a different line. so:
-	layer1 -> cell1|cell2|cell3|cell4
-	layer2 -> cell1|cell2|cell3
-	layer3 -> cell1|cell2|cell3|cell4
-	layer4 -> cell1|cell2
-
-	inside each cell, weights and biases are written separated by commas. so:
-	|w1,w2,w3,w4,w5 ... wn, bias| (last element is the bias of the cell)
-	"""
-	def save(self):
-		listoflayers = []
+	#same as save but in .txt format; not recommended fam
+	def savetxt(self):
+		firstline = '<' + self.name + '>'
+		if self.function: firstline +='<' + self.function + '>'
+		#firstline += '\n'
+		listoflayers = [firstline]
 		for each in range(self.matrix.nlayers):
 			currentlayer = []
 			for i in range(len(self.matrix.layers[each])):
@@ -62,13 +82,55 @@ class NeuralNetwork(object):
 		with open(self.name.lower() + '.txt', 'w') as file:
 			file.write(finaloutput)
 
+	"""
+	saves the NN matrix in a text file in the following format:
+	a cell is flanked by |; so |*le cell contents*|
+	each layer is on a different line. so:
+	layer1 -> cell1|cell2|cell3|cell4
+	layer2 -> cell1|cell2|cell3
+	layer3 -> cell1|cell2|cell3|cell4
+	layer4 -> cell1|cell2
+
+	inside each cell, weights and biases are written separated by commas. so:
+	|w1,w2,w3,w4,w5 ... wn, bias| (last element is the bias of the cell)
+	"""
+	#saves the neural network in a "proprietary" .nn extension file
+	def save(self):
+		firstline = '<' + self.name + '>'
+		if self.function: firstline +='<' + self.function + '>'
+		#firstline += '\n'
+		listoflayers = [firstline]
+		for each in range(self.matrix.nlayers):
+			currentlayer = []
+			for i in range(len(self.matrix.layers[each])):
+				thestringedcell = []
+				for x in range(len(self.matrix.layers[each][i][0])):
+					thestringedcell.append(str(self.matrix.layers[each][i][0][x]))
+				thestringedcell.append(str(self.matrix.layers[each][i][1]))
+				#print(thestringedcell)
+				cellstring = ",".join(thestringedcell)
+				currentlayer.append(cellstring)
+			listoflayers.append("|".join(currentlayer))
+		finaloutput = "\n".join(listoflayers)
+		byteout = finaloutput.encode("utf-8")
+		with open(self.name.lower() + '.nn', 'wb') as file:
+			file.write(byteout)
+
 	#extracts model from saved file
-	def extract(self, modelname):
+	def extracttxt(self, modelname):
 		finallayers = []
 		filename = modelname.lower() + '.txt'
 		with open(filename, 'r') as file:
 			rawtext = file.read()
 		finallayers = rawtext.split('\n')
+		name = finallayers[0].split('><')[0]
+		self.name = name[1:len(name)]
+		try:
+			self.function = finallayers[0].split('><')[1][0:-1]
+		except:
+			self.function = ''
+			self.name = self.name[0:len(self.name)-1]
+		finallayers = finallayers[1:len(finallayers)]
 		for each in range(len(finallayers)):
 			finallayers[each] = finallayers[each].split('|')
 		for each in range(len(finallayers)):
@@ -80,6 +142,46 @@ class NeuralNetwork(object):
 		self.matrix = FlexiMatrix(len(finallayers), len(finallayers[0][0][0]))
 		self.matrix.layers = finallayers
 
+	#extracts model from savebin-ed "proprietary" file
+	def extractbin(self, modelname):
+		finallayers = []
+		filename = modelname.lower() + '.nn'
+		with open(filename, 'rb') as file:
+			rawtext = file.read().decode()
+		finallayers = rawtext.split('\n')
+		name = finallayers[0].split('><')[0]
+		self.name = name[1:len(name)]
+		try:
+			self.function = finallayers[0].split('><')[1][0:-1]
+		except:
+			self.function = ''
+			self.name = self.name[0:len(self.name)-1]
+		finallayers = finallayers[1:len(finallayers)]
+		for each in range(len(finallayers)):
+			finallayers[each] = finallayers[each].split('|')
+		for each in range(len(finallayers)):
+			for i in range(len(finallayers[each])):
+				celllist = finallayers[each][i].split(',')
+				for z in range(len(celllist)):
+					celllist[z] = float(celllist[z])
+				finallayers[each][i] = [celllist[0:-1], celllist[-1]]
+		self.matrix = FlexiMatrix(len(finallayers), len(finallayers[0][0][0]))
+		self.matrix.layers = finallayers
+
+	#general function for extracting any file type
+	def extract(self, modelname):
+		global fileerrormsg
+		try:
+			self.extractbin(modelname)
+			return
+		except:
+			try:
+				self.extracttxt(modelname)
+				return
+			except:
+				print(fileerrormsg)
+				Log(fileerrormsg)
+				return
 
 
 
@@ -96,7 +198,7 @@ class NeuralNetwork(object):
 
 	#returns the outputlayer for a given input layer
 	def runcycle(self, inputs):
-		if len(inputs) != self.matrix.ninputlayer : return "Length of inputs dont match"
+		if len(inputs) != self.matrix.ninputlayer : return ninputerrormsg
 		self.inputlayer = inputs
 		self.bufferlayer = [0 for i in range(len(self.matrix.layers[0]))]
 		for each in range(len(self.bufferlayer)):
@@ -130,6 +232,7 @@ class NeuralNetwork(object):
 		g = 0
 		gi = 0
 		o = self.runcycle(inputs)
+		if o == ninputerrormsg: return
 		#print(o)
 		for i in range(len(o)):
 			if o[i] > g: 
@@ -151,7 +254,6 @@ class NeuralNetwork(object):
 
 
 
-
 """
 trains the neural network but randomly causing variations in the network
 and reproducing the best performing one
@@ -161,6 +263,9 @@ class EvolutionaryTrainer(object):
 		self.model = model
 		self.genno = 0
 		self.datadone = 0
+		self.bestmodel = NeuralNetwork(log  = False)
+		self.bestcost = 1
+		self.dones = []
 
 	#calcultates accuracy of the model in percentage of data
 	#it gets right
@@ -264,8 +369,6 @@ class EvolutionaryTrainer(object):
 			realout = outputset[each]
 			#print(len(modelout))
 			#print(len(realout))
-			#print(modelout)
-			#print(realout)
 			for x in range(len(modelout)):
 				#print(modelout[x])
 				#print(realout[x])
@@ -299,7 +402,7 @@ class EvolutionaryTrainer(object):
 
 	#trains the given model for given rate and mutations, defined 
 	#above. this is repeated for cycles no. of times (generations)
-	def train(self, dataset, cycles = 10, rate = 10, mutation = 1):
+	def biotrain(self, dataset, cycles = 10, rate = 10, mutation = 1):
 		global ok
 		self.genno = 0
 		self.datadone = 0
@@ -583,6 +686,101 @@ class Trainer(EvolutionaryTrainer):
 			
 		return gradient
 
+	#the new one that gradients by cell
+	def getgradient(self, model, dataset):
+		global delta
+		index = 0
+		modeltotrain = copy.deepcopy(model)
+		grad = copy.deepcopy(model.matrix)
+		for each in range(len(modeltotrain.matrix.layers)):
+			for cell in range(len(modeltotrain.matrix.layers[each])):
+				for val in range(len(modeltotrain.matrix.layers[each][cell][0])):
+					buffmodel = copy.deepcopy(modeltotrain)
+					cofx = self.getcostfunction(buffmodel, dataset)
+					deltax = delta * buffmodel.matrix.layers[each][cell][0][val]
+					buffmodel.matrix.layers[each][cell][0][val] += deltax
+					cofxplusdeltax = self.getcostfunction(buffmodel, dataset)
+					del buffmodel
+					dobydo = (cofxplusdeltax - cofx)/deltax
+					grad.layers[each][cell][0][val] = dobydo
+					#print(index)
+					index += 1
+				buffmodel = copy.deepcopy(modeltotrain)
+				cofx = self.getcostfunction(buffmodel, dataset)
+				deltax = delta * buffmodel.matrix.layers[each][cell][1]
+				buffmodel.matrix.layers[each][cell][1] += deltax
+				cofxplusdeltax = self.getcostfunction(buffmodel, dataset)
+				del buffmodel
+				dobydo = (cofxplusdeltax - cofx)/deltax
+				grad.layers[each][cell][1] = dobydo
+				print(index)
+				index += 1
+		del modeltotrain
+		grad.Multiply(-1)
+		return grad
+
+	def trainbc(self, dataset, generations = 1):
+
+		global ok
+		self.genno = 0
+		self.datadone = 0
+		#updater stuff
+		t = threading.Thread(target = self.updater, args = ())
+		t.start()
+
+		buff = self.model
+		init = self.getcostfunction(buff, dataset)
+		for everysingletime in range(generations):
+			grad = self.getgradient(buff, dataset)
+			buff.matrix = FlexiMatrix.Add(buff.matrix, grad)
+			
+		post = self.getcostfunction(buff, dataset)
+
+		print("Cost before training: ", init)
+		print("Cost after training: ", post)
+		ok = False
+		return buff
+
+
+	def tgtfunc(self, model, dataset):
+		global threshold
+		mn = model.name
+		bt = Trainer(model)
+		init = bt.getcostfunction(bm, dataset)
+		fin = init
+		while True:
+			bm = bt.biotrain(dataset)
+			fin = bt.getcostfunction(bm, dataset)
+			if (init-fin) < (threshold ** 0.5): break
+			init = fin
+		while True:
+			bm = bt.trainbc(dataset)
+			fin = bt.getcostfunction(bm, dataset)
+			if (init-fin) < threshold: break
+			init = fin
+		if fin < self.bestcost: 
+			self.bestmodel = bm
+			self.bestcost = fin
+		self.dones.remove(False)
+		if self.dones[0]:
+			self.bestmodel.name = mn + " -trained by the optimised training alg"
+			self.bestmodel.save()
+
+
+	#when using this specific train alg, no need to save the NN; it automatically gets saved. Thats 
+	#why it doesnt return anything
+	def train(self, dataset, rate = 5, mutation = 10):
+		#print("THis")
+		self.dones = [False for i in range(rate)]
+		self.dones.append(True)
+		self.bestcost = 1
+		networks = self.reproducemodel(self.model, rate, mutation)
+		for eachnn in networks:
+			#print('heyhey')
+			threading.Thread(target = self.tgtfunc, args = (eachnn, dataset)).start()
+		pass
+
+
 
 	def trainvectorially(self, dataset, cycles = 10):
 
@@ -610,5 +808,4 @@ class Trainer(EvolutionaryTrainer):
 		print("Cost before training: ", precost)
 		print("Cost after training: ", postcost)
 		ok = False
-		self.model = copy.deepcopy(buffmodel)
 		return buffmodel
