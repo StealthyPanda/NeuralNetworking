@@ -746,12 +746,14 @@ class Trainer(EvolutionaryTrainer):
 		global threshold
 		mn = model.name
 		bt = Trainer(model)
-		init = bt.getcostfunction(bm, dataset)
+		init = bt.getcostfunction(model, dataset)
 		fin = init
 		while True:
 			bm = bt.biotrain(dataset)
 			fin = bt.getcostfunction(bm, dataset)
-			if (init-fin) < (threshold ** 0.5): break
+			if (init-fin) < (threshold ** 0.5): 
+				bt = Trainer(bm)
+				break
 			init = fin
 		while True:
 			bm = bt.trainbc(dataset)

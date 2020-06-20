@@ -39,7 +39,7 @@ def Log(val):
 class NeuralNetwork(object):
 	#log is basically whether you want it to print its creation or not
 	def __init__(self, name = '', function = '', log = True):
-		print("New neural network created")
+		if log: print("New neural network created")
 		self.name = name
 		self.function = function
 
@@ -263,7 +263,7 @@ class EvolutionaryTrainer(object):
 		self.model = model
 		self.genno = 0
 		self.datadone = 0
-		self.bestmodel = NeuralNetwork(log = False)
+		self.bestmodel = NeuralNetwork(log  = False)
 		self.bestcost = 1
 		self.dones = []
 
@@ -746,12 +746,14 @@ class Trainer(EvolutionaryTrainer):
 		global threshold
 		mn = model.name
 		bt = Trainer(model)
-		init = bt.getcostfunction(bm, dataset)
+		init = bt.getcostfunction(model, dataset)
 		fin = init
 		while True:
 			bm = bt.biotrain(dataset)
 			fin = bt.getcostfunction(bm, dataset)
-			if (init-fin) < (threshold ** 0.5): break
+			if (init-fin) < (threshold ** 0.5): 
+				bt = Trainer(bm)
+				break
 			init = fin
 		while True:
 			bm = bt.trainbc(dataset)
