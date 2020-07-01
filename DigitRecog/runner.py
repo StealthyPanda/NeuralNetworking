@@ -1,7 +1,7 @@
 from NeuralNetwork import *
 
-jarvis = NeuralNetwork()
-jarvis.extract("jarvis")
+jarvis = NeuralNetwork("Jarvis")
+jarvis.extract("Jarvis")
 
 
 tony = Trainer(jarvis)

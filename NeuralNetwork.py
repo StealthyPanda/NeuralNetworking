@@ -692,11 +692,11 @@ class Trainer(EvolutionaryTrainer):
 		index = 0
 		modeltotrain = copy.deepcopy(model)
 		grad = copy.deepcopy(model.matrix)
+		cofx = self.getcostfunction(modeltotrain, dataset)
 		for each in range(len(modeltotrain.matrix.layers)):
 			for cell in range(len(modeltotrain.matrix.layers[each])):
 				for val in range(len(modeltotrain.matrix.layers[each][cell][0])):
 					buffmodel = copy.deepcopy(modeltotrain)
-					cofx = self.getcostfunction(buffmodel, dataset)
 					deltax = delta * buffmodel.matrix.layers[each][cell][0][val]
 					buffmodel.matrix.layers[each][cell][0][val] += deltax
 					cofxplusdeltax = self.getcostfunction(buffmodel, dataset)
@@ -706,7 +706,7 @@ class Trainer(EvolutionaryTrainer):
 					#print(index)
 					index += 1
 				buffmodel = copy.deepcopy(modeltotrain)
-				cofx = self.getcostfunction(buffmodel, dataset)
+				#cofx = self.getcostfunction(buffmodel, dataset)
 				deltax = delta * buffmodel.matrix.layers[each][cell][1]
 				buffmodel.matrix.layers[each][cell][1] += deltax
 				cofxplusdeltax = self.getcostfunction(buffmodel, dataset)
